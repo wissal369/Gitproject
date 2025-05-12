@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Prédiction d'Achat</title>
+</head>
+<body>
+    <h1>Prédire si un utilisateur va acheter</h1>
+    <form action="/predict" method="post">
+        <label>Genre :</label>
+        <select name="gender">
+            <option value="Male">Homme</option>
+            <option value="Female">Femme</option>
+        </select><br><br>
+
+        <label>Âge :</label>
+        <input type="number" name="age" required><br><br>
+
+        <label>Salaire estimé :</label>
+        <input type="number" name="salary" required><br><br>
+
+        <button type="submit">Prédire</button>
+    </form>
+
+    {% if result %}
+        <h2>{{ result }}</h2>
+    {% endif %}
+</body>
+</html>

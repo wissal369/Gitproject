@@ -1,25 +1,52 @@
-import streamlit as st
+from flask import Flask, render_template, request
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
 import numpy as np
-import joblib
+import os
+import pickle
+
+app = Flask(__name__)
+
+# Vérifie si le modèle existe déjà
+if not os.path.exists('model.pkl'):
+    # Entraînement du modèle
+    df = pd.read_csv('Social_Network_Ads.csv')
+    df['Gender'] = df['Gender'].map({'Male': 1, 'Female': 0})
+    X = df[['Gender', 'Age', 'EstimatedSalary']]
+    y = df['Purchased']
+
+    model = SVC(probability=True)
+    model.fit(X, y)
+
+    # Sauvegarde du modèle
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(model, f)
 
 # Charger le modèle
-model = joblib.load("social_ads_model.pkl")
+with open('model.pkl', 'rb') as f:
 
-st.title("Prédiction d'Achat de Produit (Social Network Ads)")
+    model = pickle.load(f)
 
-st.markdown("Entrez les informations de l'utilisateur :")
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-# Inputs utilisateur : seulement les 2 features utilisées pour entraîner le modèle
-age = st.slider("Âge", 18, 60, 30)
-salary = st.slider("Salaire estimé (€)", 15000, 150000, 50000)
+@app.route('/predict', methods=['POST'])
+def predict():
+    gender = request.form['gender']
+    age = int(request.form['age'])
+    salary = int(request.form['salary'])
+    gender_val = 1 if gender == 'Male' else 0
 
-# Création des données d'entrée (exactement 2 colonnes)
-input_data = np.array([[age, salary]])
+    input_data = np.array([[gender_val, age, salary]])
+    prediction = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0][1] * 100
 
-# Prédiction
-if st.button("Prédire"):
-    prediction = model.predict(input_data)
-    if prediction[0] == 1:
-        st.success("✅ Cet utilisateur achètera probablement le produit.")
-    else:
-        st.warning("❌ Cet utilisateur n’achètera probablement pas le produit.")
+    result = f"✅ L'utilisateur VA acheter (Probabilité : {probability:.2f}%)" if prediction == 1 \
+             else f"❌ L'utilisateur NE va PAS acheter (Probabilité : {probability:.2f}%)"
+
+    return render_template('index.html', result=result)
+
+if __name__ == '__main__':
+    app.run(debug=True)
